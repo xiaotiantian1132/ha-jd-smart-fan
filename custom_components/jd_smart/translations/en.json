@@ -166,12 +166,12 @@
         "name": "Powerful"
       },
       "fan_oscillate": {
-        "name": "Oscillate"
+        "name": "摇头"
       }
     },
     "fan": {
       "fan": {
-        "name": "Fan",
+        "name": "风扇",
         "state_attributes": {
           "preset_mode": {
             "state": {
@@ -189,7 +189,7 @@
     },
     "number": {
       "fan_wind": {
-        "name": "Wind speed"
+        "name": "风速"
       }
     }
   }
