@@ -1,8 +1,9 @@
 """Fan platform for JD Smart electric fans (device category 102007).
 
-This platform adds support for JD Smart electric fans (e.g. Airmate FA18-AD16),
-which report Capitalized stream keys such as ``Power``, ``Wind`` and ``Mode``
-(as opposed to the lower-case keys used by air conditioners).
+Single fan entity exposing power, speed and oscillation. Preset modes are
+intentionally omitted (too many options); wind speed and oscillation use the
+native Home Assistant fan features so HomeKit renders them as standard fan
+controls under one accessory named in Chinese.
 """
 
 from __future__ import annotations
@@ -23,20 +24,8 @@ from .const import DEVICE_TYPE_FAN, FAN_REQUIRED_STREAMS
 from .coordinator import JdSmartCoordinator, JdSmartConfigEntry
 from .entity import JdSmartEntity
 
-# ``Wind`` stream range: 0 (lowest) .. 11 (highest), as reported by the device.
+# ``Wind`` stream range: 0 (lowest) .. 11 (highest).
 WIND_RANGE = (0, 11)
-
-# ``Mode`` stream values from the JD product template.
-MODE_TO_PRESET = {
-    "0": "normal",   # 普通模式 / normal
-    "1": "smart",    # 智能模式 / smart
-    "2": "auto",     # 自动模式 / auto
-    "3": "sleep",    # 睡眠模式 / sleep
-    "4": "soft",     # 柔和模式 / gentle
-    "5": "cool",     # 冷房模式 / cooling
-    "6": "silent",   # 静音模式 / silent
-}
-PRESET_TO_MODE = {value: key for key, value in MODE_TO_PRESET.items()}
 
 
 async def async_setup_entry(
@@ -57,25 +46,21 @@ async def async_setup_entry(
 
 
 class JdSmartFan(JdSmartEntity, FanEntity):
-    """JD Smart electric fan entity."""
+    """JD Smart fan entity: power + speed + oscillation."""
 
     _attr_name = None
     _attr_translation_key = "fan"
     _attr_supported_features = (
         FanEntityFeature.SET_SPEED
-        | FanEntityFeature.PRESET_MODE
         | FanEntityFeature.OSCILLATE
         | FanEntityFeature.TURN_ON
         | FanEntityFeature.TURN_OFF
     )
     _attr_speed_count = int_states_in_range(WIND_RANGE)
-    _attr_preset_modes = list(PRESET_TO_MODE)
 
     def __init__(self, coordinator: JdSmartCoordinator) -> None:
         """Initialize the fan."""
         super().__init__(coordinator, "fan")
-        streams = coordinator.data.streams if coordinator.data else None
-        self._attr_supported_features = _supported_features(streams)
 
     @property
     def is_on(self) -> bool | None:
@@ -87,7 +72,7 @@ class JdSmartFan(JdSmartEntity, FanEntity):
 
     @property
     def percentage(self) -> int | None:
-        """Return the current speed as a percentage."""
+        """Return current speed as percentage."""
         wind = self.streams.get("Wind")
         if wind in (None, ""):
             return None
@@ -97,33 +82,22 @@ class JdSmartFan(JdSmartEntity, FanEntity):
             return None
 
     @property
-    def preset_mode(self) -> str | None:
-        """Return the current preset mode."""
-        return MODE_TO_PRESET.get(self.streams.get("Mode", ""))
-
-    @property
     def oscillating(self) -> bool | None:
-        """Return whether oscillation is on."""
-        # Use Horizontal (left-right swing) as the primary oscillate state.
+        """Return whether oscillation is on (Horizontal stream)."""
         value = self.streams.get("Horizontal")
         if value is None:
             return None
         return value == "1"
 
     async def async_turn_on(
-        self,
-        percentage: int | None = None,
-        preset_mode: str | None = None,
-        **kwargs: Any,
+        self, percentage: int | None = None, **kwargs: Any
     ) -> None:
-        """Turn on the fan."""
+        """Turn on the fan, optionally setting speed."""
         commands: dict[str, object] = {"Power": 1}
         if percentage is not None:
             commands["Wind"] = int(
                 percentage_to_ranged_value(WIND_RANGE, percentage)
             )
-        if preset_mode is not None:
-            commands["Mode"] = int(PRESET_TO_MODE[preset_mode])
         await self._control(commands)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
@@ -131,13 +105,10 @@ class JdSmartFan(JdSmartEntity, FanEntity):
         await self._control({"Power": 0})
 
     async def async_set_percentage(self, percentage: int) -> None:
-        """Set the fan speed percentage."""
-        value = int(percentage_to_ranged_value(WIND_RANGE, percentage))
-        await self._control({"Wind": value})
-
-    async def async_set_preset_mode(self, preset_mode: str) -> None:
-        """Set the fan preset mode."""
-        await self._control({"Mode": int(PRESET_TO_MODE[preset_mode])})
+        """Set fan speed."""
+        await self._control(
+            {"Wind": int(percentage_to_ranged_value(WIND_RANGE, percentage))}
+        )
 
     async def async_oscillate(self, oscillating: bool) -> None:
         """Turn oscillation on or off."""
@@ -149,22 +120,3 @@ class JdSmartFan(JdSmartEntity, FanEntity):
             await self.coordinator.async_control_streams(commands)
         except Exception as err:
             raise HomeAssistantError("Unable to control JD Smart fan") from err
-
-
-def _supported_features(streams: dict[str, str] | None) -> FanEntityFeature:
-    """Return features supported by the available streams."""
-    features = FanEntityFeature.TURN_ON | FanEntityFeature.TURN_OFF
-    if streams is None:
-        return (
-            features
-            | FanEntityFeature.SET_SPEED
-            | FanEntityFeature.PRESET_MODE
-            | FanEntityFeature.OSCILLATE
-        )
-    if "Wind" in streams:
-        features |= FanEntityFeature.SET_SPEED
-    if "Mode" in streams:
-        features |= FanEntityFeature.PRESET_MODE
-    if "Horizontal" in streams or "Vertical" in streams:
-        features |= FanEntityFeature.OSCILLATE
-    return features
