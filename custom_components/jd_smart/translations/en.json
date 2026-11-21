@@ -164,6 +164,9 @@
       },
       "powerful": {
         "name": "Powerful"
+      },
+      "fan_oscillate": {
+        "name": "Oscillate"
       }
     },
     "fan": {
@@ -182,6 +185,11 @@
             }
           }
         }
+      }
+    },
+    "number": {
+      "fan_wind": {
+        "name": "Wind speed"
       }
     }
   }
