@@ -11,7 +11,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .coordinator import JdSmartConfigEntry
-from .const import DEVICE_TYPE_AIR_CONDITIONER, DEVICE_TYPE_FAN
+from .const import DEVICE_TYPE_AIR_CONDITIONER
 from .entity import JdSmartEntity
 
 
@@ -34,15 +34,6 @@ SWITCHES: tuple[JdSmartSwitchDescription, ...] = (
     ),
 )
 
-# Extra per-feature switches for electric fans (device type 102007).
-# They give each function a clearly named entity in HomeKit / voice assistants.
-FAN_SWITCHES: tuple[JdSmartSwitchDescription, ...] = (
-    JdSmartSwitchDescription(
-        key="fan_oscillate", stream_id="Horizontal", translation_key="fan_oscillate"
-    ),
-)
-
-
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: JdSmartConfigEntry,
@@ -54,16 +45,6 @@ async def async_setup_entry(
         for coordinator in entry.runtime_data.coordinators.values()
         if coordinator.device_type == DEVICE_TYPE_AIR_CONDITIONER
         for description in SWITCHES
-        if (
-            coordinator.data is None
-            or description.stream_id in coordinator.data.streams
-        )
-    )
-    async_add_entities(
-        JdSmartSwitch(coordinator, description)
-        for coordinator in entry.runtime_data.coordinators.values()
-        if coordinator.device_type == DEVICE_TYPE_FAN
-        for description in FAN_SWITCHES
         if (
             coordinator.data is None
             or description.stream_id in coordinator.data.streams
