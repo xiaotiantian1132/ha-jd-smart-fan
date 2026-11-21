@@ -164,6 +164,9 @@
       },
       "powerful": {
         "name": "强力"
+      },
+      "fan_oscillate": {
+        "name": "摇头"
       }
     },
     "fan": {
@@ -182,6 +185,11 @@
             }
           }
         }
+      }
+    },
+    "number": {
+      "fan_wind": {
+        "name": "风速"
       }
     }
   }
