@@ -175,13 +175,13 @@
         "state_attributes": {
           "preset_mode": {
             "state": {
-              "normal": "Normal",
-              "smart": "Smart",
-              "auto": "Auto",
-              "sleep": "Sleep",
-              "soft": "Gentle",
-              "cool": "Cooling",
-              "silent": "Silent"
+              "normal": "普通",
+              "smart": "智能",
+              "auto": "自动",
+              "sleep": "睡眠",
+              "soft": "柔和",
+              "cool": "冷房",
+              "silent": "静音"
             }
           }
         }
